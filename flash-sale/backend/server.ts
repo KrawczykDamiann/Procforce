@@ -12,7 +12,7 @@ app.use(express.json());
 // Store connected clients for Server-Sent Events (SSE)
 const clients = new Map<number, Set<express.Response>>();
 
-// Helper function to emit the current ticket count via SSE to connected clients
+// Emit current ticket count via SSE to connected clients
 async function emitTicketUpdate(eventId: number) {
   try {
     const tickets = await prisma.ticket.findMany({
@@ -115,10 +115,9 @@ app.post('/api/reserve', async (req, res) => {
   try {
     const now = new Date();
 
-    // Using Prisma Interactive Transaction to guarantee database consistency
+    // Use Prisma Interactive Transaction for database consistency
     const result = await prisma.$transaction(async (tx) => {
-      // PESSIMISTIC LOCKING: Find exactly one available or expired ticket and lock the row.
-      // Uses native PostgreSQL UTC time alignment to prevent application/database timezone mismatches.
+      // PESSIMISTIC LOCKING: Lock one available or expired ticket row using native PostgreSQL UTC time alignment
       const availableTickets: any[] = await tx.$queryRaw`
         SELECT id FROM "Ticket" 
         WHERE "eventId" = ${parseInt(eventId, 10)} 
@@ -169,7 +168,7 @@ app.post('/api/pay', async (req, res) => {
     const now = new Date();
     const expirationThreshold = new Date(now.getTime() - 5 * 60 * 1000);
 
-    // Verify the ticket belongs to the user, is currently reserved, and hasn't expired yet
+    // Verify the ticket belongs to the user, is currently reserved, and hasn't expired
     const ticket = await prisma.ticket.findFirst({
       where: {
         id: parseInt(ticketId, 10),
@@ -218,45 +217,6 @@ app.get('/api/events/:id/live', (req, res) => {
   });
 });
 
-// POTĘŻNY ENDPOINT SEEDUJĄCY - GENERUJE WYDARZENIE I 150 BILETÓW
-app.get('/api/fix-database', async (req, res) => {
-  try {
-    // 1. Czyszczenie starych danych, aby uniknąć konfliktów ID
-    await prisma.ticket.deleteMany({});
-    await prisma.event.deleteMany({});
-    console.log('Stare dane wyczyszczone.');
-
-    // 2. Tworzenie wydarzenia głównego
-    const event = await prisma.event.create({
-      data: {
-        id: 1,
-        name: "Mecz Otwarcia Flash Sale",
-        totalTickets: 150
-      }
-    });
-
-    // 3. Generowanie tablicy 150 dostępnych biletów
-    const ticketsData = Array.from({ length: 150 }).map(() => ({
-      eventId: event.id,
-      status: 'AVAILABLE' as const
-    }));
-
-    // 4. Masowy zapis biletów w bazie danych PostgreSQL
-    await prisma.ticket.createMany({
-      data: ticketsData
-    });
-
-    res.json({
-      success: true,
-      message: "Baza danych została pomyślnie zasilona biletami!",
-      event,
-      ticketsCreated: ticketsData.length
-    });
-  } catch (error: any) {
-    console.error("Błąd podczas fixu bazy:", error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
