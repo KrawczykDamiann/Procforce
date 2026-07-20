@@ -217,6 +217,45 @@ app.get('/api/events/:id/live', (req, res) => {
   });
 });
 
+// Temporary endpoint to seed the database with initial event and tickets
+app.get('/api/fix-database', async (req, res) => {
+  try {
+    // 1. Clear existing rows to prevent conflicts
+    await prisma.ticket.deleteMany({});
+    await prisma.event.deleteMany({});
+    
+    // 2. Create the main event row
+    const event = await prisma.event.create({
+      data: {
+        id: 1,
+        name: "Mecz Otwarcia Flash Sale",
+        totalTickets: 150
+      }
+    });
+
+    // 3. Generate array for 150 available ticket entries
+    const ticketsData = Array.from({ length: 150 }).map(() => ({
+      eventId: event.id,
+      status: 'AVAILABLE' as const
+    }));
+
+    // 4. Bulk insert ticket records into the database
+    await prisma.ticket.createMany({
+      data: ticketsData
+    });
+
+    res.json({
+      success: true,
+      message: "Database successfully seeded with 150 tickets!",
+      event,
+      ticketsCreated: ticketsData.length
+    });
+  } catch (error: any) {
+    console.error("Seeding error:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
