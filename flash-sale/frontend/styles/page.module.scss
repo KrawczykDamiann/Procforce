@@ -1,0 +1,120 @@
+@import './variables.scss';
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $bg-color;
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 800px; // Zwiększone z 400px, aby lista wydarzeń mieściła się w poziomie
+  width: 100%;
+}
+
+.title {
+  color: $text-color;
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+}
+
+.description {
+  margin-bottom: 2rem;
+  color: rgba($text-color, 0.7); // Wykorzystanie zmiennej tekstu z subtelnym przyciemnieniem
+  font-size: 1rem;
+}
+
+/* Sekcja listy wydarzeń */
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.eventItem {
+  padding: 20px;
+  border: 1px solid rgba($text-color, 0.1); // Dynamiczna ramka zależna od koloru tekstu
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between; // Poprawiona wartość 'space-between'
+  align-items: center;
+  background-color: white;
+}
+
+.eventInfo {
+  flex-grow: 1;
+  text-align: left;
+
+  h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.25rem;
+    color: $text-color;
+  }
+
+  p {
+    margin: 0;
+    color: rgba($text-color, 0.7);
+    font-size: 0.95rem;
+  }
+}
+
+/* Zachowane dla kompatybilności z widokiem szczegółów */
+.counter {
+  margin: 2rem 0;
+  font-size: 1.25rem;
+  
+  strong {
+    display: block;
+    font-size: 3rem;
+    color: $primary-color;
+    margin-top: 0.5rem;
+  }
+}
+
+/* Wspólny komponent przycisku */
+.button {
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+
+  &:hover:not(:disabled):not(.soldOut) {
+    background-color: $hover-color;
+  }
+
+  // Integracja stanu wyprzedania ze zmiennymi blokady biletów
+  &.soldOut {
+    background-color: $disabled-bg;
+    color: $disabled-text;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+/* Klasy pomocnicze */
+.error {
+  color: $error-color;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.success {
+  color: $success-color;
+  margin-top: 1rem;
+  font-weight: 500;
+}

@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id           Int      @id @default(autoincrement())
+  name         String
+  totalTickets Int
+  tickets      Ticket[]
+}
+
+model Ticket {
+  id         Int       @id @default(autoincrement())
+  eventId    Int
+  status     String    @default("AVAILABLE") 
+  reservedAt DateTime?
+  userId     String?   
+  
+  event      Event     @relation(fields: [eventId], references: [id])
+
+  @@index([eventId, status])
+}
