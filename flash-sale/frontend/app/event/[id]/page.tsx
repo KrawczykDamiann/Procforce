@@ -5,6 +5,9 @@ import useSWR from "swr";
 import { TEXTS } from "../../../config/constants";
 import styles from "../../../styles/page.module.scss";
 
+// Force dynamic rendering to prevent build-time ECONNREFUSED errors on Vercel
+export const dynamic = 'force-dynamic';
+
 interface EventDetails {
   id: number;
   name: string;
@@ -12,7 +15,16 @@ interface EventDetails {
   availableTickets: number;
 }
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => 
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error("Failed to fetch event data");
+      return res.json();
+    })
+    .catch((err) => {
+      console.warn("Background fetcher error:", err.message);
+      return null;
+    });
 
 export default function EventPage({
   params,
@@ -21,18 +33,15 @@ export default function EventPage({
 }) {
   const resolvedParams = use(params);
   const id = resolvedParams.id;
-  const userId = "user_123"; // Static user ID for recruitment task purposes
+  const userId = "user_123"; // Mock user ID for recruitment task purposes
 
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isReserving, setIsReserving] = useState<boolean>(false);
   const [isPaying, setIsPaying] = useState<boolean>(false);
-
-  // Track the active reservation
   const [reservedTicketId, setReservedTicketId] = useState<number | null>(null);
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
-  // SWR handles data fetching and real-time caching with explicit EventDetails typing
   const { data, mutate } = useSWR<EventDetails>(
     `http://localhost:3001/api/events/${id}`,
     fetcher,
@@ -40,6 +49,8 @@ export default function EventPage({
 
   // Connect to Server-Sent Events (SSE) for real-time ticket updates
   useEffect(() => {
+    if (typeof window === 'undefined') return; // Prevent execution during server-side build phase
+
     const eventSource = new EventSource(
       `http://localhost:3001/api/events/${id}/live`,
     );
@@ -47,7 +58,6 @@ export default function EventPage({
     eventSource.onmessage = (event) => {
       const liveData = JSON.parse(event.data);
       
-      // Using functional update with explicit type declaration to prevent ESLint 'no-explicit-any' warnings
       mutate(
         (currentData: EventDetails | undefined) => {
           if (!currentData) return currentData;
@@ -60,7 +70,6 @@ export default function EventPage({
     return () => eventSource.close();
   }, [id, mutate]);
 
-  // Handle temporary 5-minute ticket reservation
   const handleReserve = async () => {
     if (!data || data.availableTickets <= 0 || reservedTicketId) return;
 
@@ -68,7 +77,7 @@ export default function EventPage({
     setError(null);
     setSuccessMessage(null);
 
-    // Optimistic UI Update: Decrease counter immediately for better UX
+    // Optimistic UI update: decrease counter immediately for better UX
     const optimisticData = {
       ...data,
       availableTickets: data.availableTickets - 1,
@@ -93,8 +102,7 @@ export default function EventPage({
         "Ticket reserved! You have 5 minutes to complete the payment.",
       );
     } catch (err) {
-      // Revert Optimistic UI update if database transaction fails
-      mutate();
+      mutate(); // Revert optimistic update if the reservation fails
       const errorMessage = err instanceof Error ? err.message : "";
       setError(
         errorMessage === "Tickets are sold out."
@@ -106,7 +114,6 @@ export default function EventPage({
     }
   };
 
-  // Handle reservation payment settlement
   const handlePay = async () => {
     if (!reservedTicketId || isPaying) return;
 
@@ -157,7 +164,7 @@ export default function EventPage({
 
         {!reservedTicketId && !isPaid && (
           <button
-            className={`${styles.button} ${isSoldOut || isReserving ? styles.disabled : ""}`}
+            className={`${styles.button} ${isSoldOut || isReserving ? styles.soldOut : ""}`}
             onClick={handleReserve}
             disabled={isSoldOut || isReserving}
           >

@@ -12,15 +12,22 @@ interface EventItem {
 }
 
 async function getEvents(): Promise<EventItem[]> {
-  const res = await fetch('http://localhost:3001/api/events', {
-    next: { revalidate } // Native Next.js fetch caching integration
-  });
-  
-  if (!res.ok) {
-    throw new Error('Failed to fetch events data');
+  try {
+    const res = await fetch('http://localhost:3001/api/events', {
+      next: { revalidate } // Native Next.js fetch caching integration
+    });
+    
+    if (!res.ok) {
+      console.warn(`Failed to fetch events data. Status: ${res.status}`);
+      return [];
+    }
+    
+    return await res.json();
+  } catch (error) {
+    // Prevents Vercel build from crashing when backend is offline
+    console.warn('Backend unavailable during build time. Using fallback empty list.');
+    return [];
   }
-  
-  return res.json();
 }
 
 export default async function HomePage() {
@@ -35,29 +42,33 @@ export default async function HomePage() {
         </p>
 
         <div className={styles.eventList}>
-          {events.map((event) => {
-            const isSoldOut = event.availableTickets === 0;
-            
-            return (
-              <div key={event.id} className={styles.eventItem}>
-                <div className={styles.eventInfo}>
-                  <h3>{event.name}</h3>
-                  <p>
-                    Tickets Available: <strong>{event.availableTickets}</strong> / {event.totalTickets}
-                  </p>
+          {events.length === 0 ? (
+            <p className={styles.description}>No active events available at the moment.</p>
+          ) : (
+            events.map((event) => {
+              const isSoldOut = event.availableTickets === 0;
+              
+              return (
+                <div key={event.id} className={styles.eventItem}>
+                  <div className={styles.eventInfo}>
+                    <h3>{event.name}</h3>
+                    <p>
+                      Tickets Available: <strong>{event.availableTickets}</strong> / {event.totalTickets}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <Link 
+                      href={`/event/${event.id}`}
+                      className={`${styles.button} ${isSoldOut ? styles.soldOut : ''}`}
+                    >
+                      {isSoldOut ? 'Sold Out' : 'View Event'}
+                    </Link>
+                  </div>
                 </div>
-                
-                <div>
-                  <Link 
-                    href={`/event/${event.id}`}
-                    className={`${styles.button} ${isSoldOut ? styles.soldOut : ''}`}
-                  >
-                    {isSoldOut ? 'Sold Out' : 'View Event'}
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>
