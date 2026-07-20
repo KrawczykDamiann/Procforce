@@ -73,3 +73,58 @@ WHERE "eventId" = $1
 AND ("status" = 'AVAILABLE' OR ("status" = 'RESERVED' AND "reservedAt" < (NOW() AT TIME ZONE 'UTC') - INTERVAL '5 minutes'))
 LIMIT 1 
 FOR UPDATE SKIP LOCKED
+```
+
+Zastosowanie klauzuli `FOR UPDATE SKIP LOCKED` sprawia, że baza danych natychmiast blokuje wybrany wiersz dla bieżącego żądania. Każde inne równoległe zapytanie pomija zablokowany rekord i szuka kolejnego wolnego biletu. Zapobiega to konfliktom i blokadom kolejkowym wątków bazy danych.
+
+### 2. Obsługa 5-minutowych Blokad oraz Płatności
+Bilety posiadają statusy `AVAILABLE`, `RESERVED` oraz `PAID`. Podczas rezerwacji przypisywany jest znacznik czasu `reservedAt`. Logika biznesowa automatycznie traktuje bilety ze statusem `RESERVED`, których blokada minęła, jako ponownie wolne. Endpoint `/pay` trwale zmienia status na `PAID` przed upływem wyznaczonego czasu.
+
+### 3. Komunikacja Real-Time i Architektura Frontendu
+*   **Strona główna (ISR):** Wykorzystuje wbudowane mechanizmy Next.js do odświeżania listy wydarzeń w tle co 10 sekund (`revalidate = 10`).
+*   **Szczegóły wydarzenia (SSE + SWR):** Strumień Server-Sent Events (SSE) na backendzie emituje aktualną liczbę wolnych biletów po każdej udanej transakcji. Frontend nasłuchuje zdarzeń i błyskawicznie aktualizuje lokalną pamięć podręczną biblioteki SWR.
+*   **Optimistic UI:** Przycisk rezerwacji natychmiastowo zmniejsza stan licznika na ekranie użytkownika, zapewniając doskonały UX. W przypadku awarii sieci lub odrzucenia transakcji przez backend, stan licznika jest automatycznie wycofywany.
+
+---
+
+## 🚦 Instrukcja Uruchomienia
+
+### Wariant 1: Szybki start przez Docker (Zalecane)
+Wymagany zainstalowany Docker oraz Docker Compose. W głównym katalogu projektu (`Procforce`) uruchom:
+```bash
+docker-compose up --build
+```
+Kontener automatycznie skonfiguruje bazę danych PostgreSQL, wykona migracje Prisma, zasili bazę danymi początkowymi (seed) oraz uruchomi backend (port 3001) i frontend (port 3000).
+
+### Wariant 2: Uruchomienie w pełni lokalne
+Jeśli uruchamiasz usługi bez Dockera, upewnij się, że masz lokalną instancję PostgreSQL i zaktualizowany plik `.env`. Następnie wykonaj:
+
+1. **Konfiguracja i start backendu:**
+   ```bash
+   cd flash-sale/backend
+   npm install
+   npx prisma migrate dev
+   npx prisma db seed
+   npm run dev
+   ```
+2. **Start frontendu (w osobnym oknie terminala):**
+   ```bash
+   cd flash-sale/frontend
+   npm install
+   npm run dev
+   ```
+
+---
+
+## 🧪 Testy Współbieżności (Concurrency Stress-Test)
+
+W katalogu backendu przygotowany został automatyczny skrypt integracyjny, który symuluje uderzenie 150 użytkowników próbujących kliknąć przycisk rezerwacji w tej samej milisekundzie. Pozwala to naocznie zweryfikować odporność bazy danych na zjawisko wyścigu (race conditions).
+
+Aby go uruchomić:
+1. Upewnij się, że lokalny serwer backendu działa.
+2. Otwórz terminal w folderze backendu i wywołaj komendę:
+   ```bash
+   npx tsx test-concurrency.ts
+   ```
+
+Skrypt wyświetli podsumowanie pokazujące ile rezerwacji zakończyło się sukcesem, a ile zostało bezpiecznie odrzuconych przez blokadę bazodanową z komunikatem o wyprzedaniu biletów.
