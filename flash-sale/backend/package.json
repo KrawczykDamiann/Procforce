@@ -5,7 +5,8 @@
   "main": "server.ts",
   "type": "module",
   "scripts": {
-    "dev": "tsx server.ts"
+    "dev": "tsx server.ts",
+    "start": "npx prisma db push && tsx server.ts"
   },
   "keywords": [],
   "author": "",
