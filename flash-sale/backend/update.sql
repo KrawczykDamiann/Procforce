@@ -1,0 +1,1 @@
+UPDATE "Event" SET "totalTickets" = 150, "availableTickets" = 150 WHERE id = 1;

@@ -218,6 +218,45 @@ app.get('/api/events/:id/live', (req, res) => {
   });
 });
 
+// POTĘŻNY ENDPOINT SEEDUJĄCY - GENERUJE WYDARZENIE I 150 BILETÓW
+app.get('/api/fix-database', async (req, res) => {
+  try {
+    // 1. Czyszczenie starych danych, aby uniknąć konfliktów ID
+    await prisma.ticket.deleteMany({});
+    await prisma.event.deleteMany({});
+    console.log('Stare dane wyczyszczone.');
+
+    // 2. Tworzenie wydarzenia głównego
+    const event = await prisma.event.create({
+      data: {
+        id: 1,
+        name: "Mecz Otwarcia Flash Sale",
+        totalTickets: 150
+      }
+    });
+
+    // 3. Generowanie tablicy 150 dostępnych biletów
+    const ticketsData = Array.from({ length: 150 }).map(() => ({
+      eventId: event.id,
+      status: 'AVAILABLE' as const
+    }));
+
+    // 4. Masowy zapis biletów w bazie danych PostgreSQL
+    await prisma.ticket.createMany({
+      data: ticketsData
+    });
+
+    res.json({
+      success: true,
+      message: "Baza danych została pomyślnie zasilona biletami!",
+      event,
+      ticketsCreated: ticketsData.length
+    });
+  } catch (error: any) {
+    console.error("Błąd podczas fixu bazy:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 const PORT = 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
