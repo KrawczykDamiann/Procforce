@@ -1,4 +1,4 @@
-@import './variables.scss';
+@use './variables' as *;
 
 .container {
   min-height: 100vh;
@@ -16,7 +16,7 @@
   border-radius: 12px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   text-align: center;
-  max-width: 800px; // Zwiększone z 400px, aby lista wydarzeń mieściła się w poziomie
+  max-width: 800px;
   width: 100%;
 }
 
@@ -28,11 +28,11 @@
 
 .description {
   margin-bottom: 2rem;
-  color: rgba($text-color, 0.7); // Wykorzystanie zmiennej tekstu z subtelnym przyciemnieniem
+  color: rgba($text-color, 0.7);
   font-size: 1rem;
 }
 
-/* Sekcja listy wydarzeń */
+/* Event list section */
 .eventList {
   display: flex;
   flex-direction: column;
@@ -41,10 +41,10 @@
 
 .eventItem {
   padding: 20px;
-  border: 1px solid rgba($text-color, 0.1); // Dynamiczna ramka zależna od koloru tekstu
+  border: 1px solid rgba($text-color, 0.1); // Dynamic border dependent on text color
   border-radius: 8px;
   display: flex;
-  justify-content: space-between; // Poprawiona wartość 'space-between'
+  justify-content: space-between; // Corrected 'space-between' value
   align-items: center;
   background-color: white;
 }
@@ -66,7 +66,7 @@
   }
 }
 
-/* Zachowane dla kompatybilności z widokiem szczegółów */
+/* Retained for compatibility with the detail view */
 .counter {
   margin: 2rem 0;
   font-size: 1.25rem;
@@ -79,7 +79,7 @@
   }
 }
 
-/* Wspólny komponent przycisku */
+/* Shared button component */
 .button {
   background-color: $primary-color;
   color: white;
@@ -97,7 +97,7 @@
     background-color: $hover-color;
   }
 
-  // Integracja stanu wyprzedania ze zmiennymi blokady biletów
+  // Integration of the sold out state with ticket lock variables
   &.soldOut {
     background-color: $disabled-bg;
     color: $disabled-text;
@@ -106,7 +106,7 @@
   }
 }
 
-/* Klasy pomocnicze */
+/* Helper classes */
 .error {
   color: $error-color;
   margin-top: 1rem;
