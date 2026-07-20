@@ -4,6 +4,9 @@ import styles from '../styles/page.module.scss';
 // Enable Incremental Static Regeneration (ISR) - Revalidate cache every 10 seconds
 export const revalidate = 10;
 
+// Dynamic API URL for production deployment fallback to localhost for development
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 interface EventItem {
   id: number;
   name: string;
@@ -13,7 +16,7 @@ interface EventItem {
 
 async function getEvents(): Promise<EventItem[]> {
   try {
-    const res = await fetch('http://localhost:3001/api/events', {
+    const res = await fetch(`${API_URL}/api/events`, {
       next: { revalidate } // Native Next.js fetch caching integration
     });
     

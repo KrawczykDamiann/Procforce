@@ -8,6 +8,9 @@ import styles from "../../../styles/page.module.scss";
 // Force dynamic rendering to prevent build-time ECONNREFUSED errors on Vercel
 export const dynamic = 'force-dynamic';
 
+// Dynamic API URL for production deployment fallback to localhost for development
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 interface EventDetails {
   id: number;
   name: string;
@@ -43,7 +46,7 @@ export default function EventPage({
   const [isPaid, setIsPaid] = useState<boolean>(false);
 
   const { data, mutate } = useSWR<EventDetails>(
-    `http://localhost:3001/api/events/${id}`,
+    `${API_URL}/api/events/${id}`,
     fetcher,
   );
 
@@ -52,7 +55,7 @@ export default function EventPage({
     if (typeof window === 'undefined') return; // Prevent execution during server-side build phase
 
     const eventSource = new EventSource(
-      `http://localhost:3001/api/events/${id}/live`,
+      `${API_URL}/api/events/${id}/live`,
     );
 
     eventSource.onmessage = (event) => {
@@ -85,7 +88,7 @@ export default function EventPage({
     mutate(optimisticData, false);
 
     try {
-      const response = await fetch("http://localhost:3001/api/reserve", {
+      const response = await fetch(`${API_URL}/api/reserve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventId: parseInt(id, 10), userId }),
@@ -121,7 +124,7 @@ export default function EventPage({
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:3001/api/pay", {
+      const response = await fetch(`${API_URL}/api/pay`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ticketId: reservedTicketId, userId }),
